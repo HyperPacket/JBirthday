@@ -6,10 +6,9 @@
     <title>Radiology Web-PACS: Patient Study</title>
     <style>
         :root {
-            /* Set initial position off-screen so the hole doesn't show at start */
-            --x: -500px;
-            --y: -500px;
-            --mask-opacity: 0;
+            /* Initial position way off-screen */
+            --x: -1000px;
+            --y: -1000px;
         }
 
         body, html {
@@ -79,15 +78,12 @@
             line-height: 1.1;
         }
 
-        /* Side GIFs stay small */
         .side-gif {
-            width: 70px; 
-            height: 70px;
+            width: 70px; height: 70px;
             object-fit: cover;
             border-radius: 8px;
         }
 
-        /* MAIN GIF: Much bigger as requested */
         .main-gif-under {
             width: 220px; 
             height: auto;
@@ -108,7 +104,7 @@
             background: url('scan.jpg') no-repeat center center;
             background-size: cover;
             background-color: #000;
-            /* Hide the mask effect until the user interacts */
+            /* Only applies mask where --x and --y are set */
             -webkit-mask-image: radial-gradient(circle at var(--x) var(--y), transparent 80px, black 130px);
             mask-image: radial-gradient(circle at var(--x) var(--y), transparent 80px, black 130px);
         }
@@ -122,8 +118,7 @@
             transform: translate(-50%, -50%);
             pointer-events: none;
             z-index: 15;
-            /* Hidden initially */
-            display: none;
+            display: none; /* Hidden by default */
         }
     </style>
 </head>
@@ -148,8 +143,6 @@
         </div>
 
         <img src="https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExNzA0cjJrOW9uenlkZGszdzFmYmk0b2Ywb2dzcGV4OXp5bTltcXlmcCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/dwmTtW4IuyDzOpLgqO/giphy.gif" class="main-gif-under">
-        
-        <p style="color: white; font-weight: bold; margin-top: 20px;"></p>
     </div>
 
     <div class="scan-layer"></div>
@@ -159,19 +152,30 @@
         const root = document.documentElement;
         const reticle = document.getElementById('reticle');
 
-        function handleInput(e) {
-            // Show the reticle on first interaction
+        // Logic to show/hide and move the hole
+        function showHole(e) {
             reticle.style.display = 'block';
-
             const clientX = e.touches ? e.touches[0].clientX : e.clientX;
             const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-            
             root.style.setProperty('--x', clientX + 'px');
             root.style.setProperty('--y', clientY + 'px');
         }
 
-        window.addEventListener('mousemove', handleInput);
-        window.addEventListener('touchmove', handleInput, { passive: false });
+        function hideHole() {
+            reticle.style.display = 'none';
+            root.style.setProperty('--x', '-1000px');
+            root.style.setProperty('--y', '-1000px');
+        }
+
+        // Active Interaction
+        window.addEventListener('mousemove', showHole);
+        window.addEventListener('touchmove', showHole, { passive: false });
+        window.addEventListener('touchstart', showHole, { passive: false });
+
+        // Removal Interaction
+        window.addEventListener('mouseleave', hideHole);
+        window.addEventListener('touchend', hideHole);
+        window.addEventListener('touchcancel', hideHole);
     </script>
 </body>
 </html>
