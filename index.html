@@ -6,8 +6,10 @@
     <title>Radiology Web-PACS: Patient Study</title>
     <style>
         :root {
-            --x: 50%;
-            --y: 50%;
+            /* Set initial position off-screen so the hole doesn't show at start */
+            --x: -500px;
+            --y: -500px;
+            --mask-opacity: 0;
         }
 
         body, html {
@@ -57,10 +59,9 @@
             100% { background-position: 0% 50%; }
         }
 
-        /* The Grid for the Text and Side GIFs */
         .header-grid {
             display: grid;
-            grid-template-columns: 1fr auto 1fr; /* Left GIF | Text | Right GIF */
+            grid-template-columns: 1fr auto 1fr;
             align-items: center;
             justify-items: center;
             width: 100%;
@@ -69,7 +70,7 @@
 
         .birthday-text {
             color: white;
-            font-size: 1.8rem; /* Scaled for phone screens */
+            font-size: 1.8rem;
             font-weight: bold;
             text-transform: uppercase;
             text-shadow: 0 0 15px rgba(255,255,255,0.8), 0 0 30px #ff0066;
@@ -78,17 +79,21 @@
             line-height: 1.1;
         }
 
-        /* All GIFs same size */
-        .bday-gif {
-            width: 80px; 
-            height: 80px;
-            object-fit: cover; /* Keeps them square and neat */
+        /* Side GIFs stay small */
+        .side-gif {
+            width: 70px; 
+            height: 70px;
+            object-fit: cover;
             border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.4);
         }
 
+        /* MAIN GIF: Much bigger as requested */
         .main-gif-under {
-            margin-top: 20px;
+            width: 220px; 
+            height: auto;
+            margin-top: 25px;
+            border-radius: 12px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
         }
 
         @keyframes pulse {
@@ -103,6 +108,7 @@
             background: url('scan.jpg') no-repeat center center;
             background-size: cover;
             background-color: #000;
+            /* Hide the mask effect until the user interacts */
             -webkit-mask-image: radial-gradient(circle at var(--x) var(--y), transparent 80px, black 130px);
             mask-image: radial-gradient(circle at var(--x) var(--y), transparent 80px, black 130px);
         }
@@ -116,6 +122,8 @@
             transform: translate(-50%, -50%);
             pointer-events: none;
             z-index: 15;
+            /* Hidden initially */
+            display: none;
         }
     </style>
 </head>
@@ -133,27 +141,28 @@
     </div>
 
     <div class="birthday-layer">
-        
         <div class="header-grid">
-            <img src="https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExdmtlNXQyNHQxOWp2M2h3Zmp3OHhyeTB3ano5dWUybHR4cXhlOGhuYSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/RjVP4ZoxA3xeReLQT0/giphy.gif" class="bday-gif">
-            
+            <img src="https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExdmtlNXQyNHQxOWp2M2h3Zmp3OHhyeTB3ano5dWUybHR4cXhlOGhuYSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/RjVP4ZoxA3xeReLQT0/giphy.gif" class="side-gif">
             <div class="birthday-text">HAPPY<br>BIRTHDAY!</div>
-            
-            <img src="https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExN21qOGNzaHF2MjRwbDJwYXY3eGEwNzJ4MzQ4bjB6Y2w2MjBvZWptYSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/wM0IbbTKs2yhXck0sP/giphy.gif" class="bday-gif">
+            <img src="https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExN21qOGNzaHF2MjRwbDJwYXY3eGEwNzJ4MzQ4bjB6Y2w2MjBvZWptYSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/wM0IbbTKs2yhXck0sP/giphy.gif" class="side-gif">
         </div>
 
-        <img src="https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExNzA0cjJrOW9uenlkZGszdzFmYmk0b2Ywb2dzcGV4OXp5bTltcXlmcCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/dwmTtW4IuyDzOpLgqO/giphy.gif" class="bday-gif main-gif-under">
+        <img src="https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExNzA0cjJrOW9uenlkZGszdzFmYmk0b2Ywb2dzcGV4OXp5bTltcXlmcCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/dwmTtW4IuyDzOpLgqO/giphy.gif" class="main-gif-under">
         
-        <p style="color: white; font-weight: bold; margin-top: 20px;">(Diagnosis: Absolute Legend)</p>
+        <p style="color: white; font-weight: bold; margin-top: 20px;"></p>
     </div>
 
     <div class="scan-layer"></div>
-    <div class="reticle"></div>
+    <div class="reticle" id="reticle"></div>
 
     <script>
         const root = document.documentElement;
+        const reticle = document.getElementById('reticle');
 
         function handleInput(e) {
+            // Show the reticle on first interaction
+            reticle.style.display = 'block';
+
             const clientX = e.touches ? e.touches[0].clientX : e.clientX;
             const clientY = e.touches ? e.touches[0].clientY : e.clientY;
             
